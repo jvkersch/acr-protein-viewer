@@ -87,8 +87,17 @@ def create_app(structures, loader, default_acr="anti_CRISPR0001"):
         Input("pdb-dropdown", "value"),
     )
     def update_selectable_chains(acr_id, pdb_id):
-        chain_ids = structures.get_chains(acr_id, pdb_id)
-        return chain_ids[0], _to_dropdown(chain_ids)
+
+        scores = _get_chains_with_scores(structures, loader, acr_id, pdb_id)
+        scores = {chain: score for chain, score in scores.items() if score > 0}
+
+        sorted_chains = sorted(scores, key=lambda ch: scores[ch], reverse=True)
+        dropdown_labels = [
+            {"label": f"{chain} (TM {scores[chain]:.02f})", "value": chain}
+            for chain in sorted_chains
+        ]
+
+        return sorted_chains[0], dropdown_labels
 
     @app.callback(
         Output("plddt-molecule-viewer", "modelData"),
@@ -123,3 +132,21 @@ def create_app(structures, loader, default_acr="anti_CRISPR0001"):
         return moldata, styles
 
     return app
+
+
+def _get_chains_with_scores(structures, loader, acr_id, pdb_id):
+
+    mol3d1, _, sequence1, positions1 = loader.load_pdb(acr_id)
+
+    chain_ids = structures.get_chains(acr_id, pdb_id)
+    tm_scores = {}
+    for chain_id in chain_ids:
+        mol3d2, _, sequence2, positions2 = loader.load_pdb(pdb_id, chain_id)
+        if len(positions2) > 0:
+            res = tm_align(positions1, positions2, sequence1, sequence2)
+            score = res.tm_norm_chain1
+        else:
+            score = 0.0
+        tm_scores[chain_id] = score
+
+    return tm_scores
