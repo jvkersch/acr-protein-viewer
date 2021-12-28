@@ -1,20 +1,12 @@
 import dash
-import dash_bio as dashbio
-from dash import dcc, html
 from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 
 from tmtools import tm_align
 
+from .layouts import controls_factory, graphs
 from .styles import get_alphafold_style, get_chain_style
 from .transform import affine_transform, combine_moldata
-
-
-_EMPTY_MOL3D = {
-    "atoms": [],
-    "bonds": [],
-}
-_EMPTY_STYLES = []
 
 
 def _to_dropdown(values):
@@ -25,70 +17,12 @@ def _to_dropdown(values):
 
 def create_app(structures, loader, default_acr="anti_CRISPR0001"):
 
-    default_pdbs = structures.get_matches(default_acr)
-    default_pdb = default_pdbs[0]
-    default_chains = structures.get_chains(default_acr, default_pdb)
-    default_chain = default_chains[0]  # replace with best chain
-
     app = dash.Dash(
         __name__,
         external_stylesheets=[dbc.themes.BOOTSTRAP]
     )
 
-    controls = dbc.Row([
-        dbc.Col([
-            dbc.Label("Prediction", html_for="acr-dropdown"),
-            dcc.Dropdown(
-                id="acr-dropdown",
-                options=_to_dropdown(structures.acr_ids),
-                value="anti_CRISPR0001",
-                clearable=False,
-            ),
-        ], width=3),
-        dbc.Col([
-            dbc.Label("Ground Truth", html_for="pdb-drowndown"),
-            dcc.Dropdown(
-                id="pdb-dropdown",
-                options=_to_dropdown(default_pdbs),
-                value=default_pdb,
-                clearable=False,
-            ),
-        ], width=3),
-        dbc.Col([
-            dbc.Label("Ground Truth Chain"),
-            dcc.Dropdown(
-                id="chain-dropdown",
-                options=_to_dropdown(default_chains),
-                value=default_chain,
-                clearable=False,
-            ),
-        ], width=3),
-    ], className="g-3")
-
-    graphs = dbc.Row([
-        dbc.Col([
-            dcc.Loading(
-                id="loading-1",
-                type="default",
-                children=html.Div([
-                    html.Div([
-                        dashbio.Molecule3dViewer(
-                            id='plddt-molecule-viewer',
-                            modelData=_EMPTY_MOL3D,
-                            styles=_EMPTY_STYLES,
-                        ),
-                    ], style={'display': 'inline-block'}),
-                    html.Div([
-                        dashbio.Molecule3dViewer(
-                            id='align-molecule-viewer',
-                            modelData=_EMPTY_MOL3D,
-                            styles=_EMPTY_STYLES,
-                        ),
-                    ], style={'display': 'inline-block'}),
-                ]),
-            ),
-        ]),
-    ])
+    controls = controls_factory(structures.acr_ids)
 
     app.layout = dbc.Container([
         controls,
