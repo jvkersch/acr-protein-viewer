@@ -15,14 +15,14 @@ def _to_dropdown(values):
     ]
 
 
-def create_app(structures, loader, default_acr="anti_CRISPR0001"):
+def create_app(metadata, loader, default_acr="anti_CRISPR0001"):
 
     app = dash.Dash(
         __name__,
         external_stylesheets=[dbc.themes.BOOTSTRAP]
     )
 
-    controls = controls_factory(structures.acr_ids)
+    controls = controls_factory(metadata.acr_ids)
 
     app.layout = dbc.Container([
         controls,
@@ -35,7 +35,7 @@ def create_app(structures, loader, default_acr="anti_CRISPR0001"):
         Input("acr-dropdown", "value"),
     )
     def update_selectable_pdbs(acr_id):
-        pdb_ids = structures.get_matches(acr_id)
+        pdb_ids = metadata.get_matches(acr_id)
         return pdb_ids[0], _to_dropdown(pdb_ids)
 
     @app.callback(
@@ -46,7 +46,7 @@ def create_app(structures, loader, default_acr="anti_CRISPR0001"):
     )
     def update_selectable_chains(acr_id, pdb_id):
 
-        scores = _get_chains_with_scores(structures, loader, acr_id, pdb_id)
+        scores = _get_chains_with_scores(metadata, loader, acr_id, pdb_id)
         scores = {chain: score for chain, score in scores.items() if score > 0}
 
         sorted_chains = sorted(scores, key=lambda ch: scores[ch], reverse=True)
@@ -92,11 +92,11 @@ def create_app(structures, loader, default_acr="anti_CRISPR0001"):
     return app
 
 
-def _get_chains_with_scores(structures, loader, acr_id, pdb_id):
+def _get_chains_with_scores(metadata, loader, acr_id, pdb_id):
 
     mol3d1, _, sequence1, positions1 = loader.load_pdb(acr_id)
 
-    chain_ids = structures.get_chains(acr_id, pdb_id)
+    chain_ids = metadata.get_chains(acr_id, pdb_id)
     tm_scores = {}
     for chain_id in chain_ids:
         mol3d2, _, sequence2, positions2 = loader.load_pdb(pdb_id, chain_id)
