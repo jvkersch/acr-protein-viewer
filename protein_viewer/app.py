@@ -15,10 +15,11 @@ def _to_dropdown(values):
     ]
 
 
-def create_app(metadata, loader, default_acr="anti_CRISPR0001"):
+def create_app(server, metadata, loader):
 
     app = dash.Dash(
         __name__,
+        server=server,
         external_stylesheets=[dbc.themes.BOOTSTRAP]
     )
 
